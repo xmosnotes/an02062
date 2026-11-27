@@ -1,0 +1,393 @@
+################################################
+AN02062: USB CDC-NCM Class for Ethernet over USB
+################################################
+
+************
+Introduction
+************
+
+This application note shows how to implement a USB Communications Device Class
+(CDC) Network Control Model (NCM) device on an xcore device using ``lib_xud``.
+The host sees the device as an Ethernet network adapter. A small web server on
+the device lets the host control the board's LEDs, read its push buttons and
+view packet statistics.
+
+AN00131 demonstrates the simpler Ethernet Control Model (ECM), in which each
+USB transfer carries one Ethernet frame. NCM instead packs several frames into
+one transfer, called a Network Transfer Block (NTB). This reduces the
+per-transfer overhead, while the application still sends and receives
+individual Ethernet frames.
+
+The example runs on the XK-EVK-XU316 board and is built with XTC Tools 15.3.1.
+It reuses the web demo from AN00131 on top of a new NCM transport. The device
+is a network endpoint only: it does not bridge to a physical Ethernet port or
+route traffic to the Internet.
+
+.. warning::
+
+   This is example code. It has not been validated for USB compliance and is
+   not a product reference.
+
+Accessing the software
+======================
+
+Clone ``https://github.com/xmosnotes/an02062`` into a sandbox directory. The
+build fetches the libraries it depends on into sibling directories.
+
+************
+NCM overview
+************
+
+Host compatibility
+==================
+
+Windows 11, macOS and Linux all include NCM host drivers, so the host needs no
+additional driver. On Windows 11 the driver is ``UsbNcm.sys``, and Microsoft
+recommends NCM instead of RNDIS for new USB networking devices. This example
+does not cover Windows 10.
+
+The example has been run at high speed on macOS 15.5. Other hosts have not
+been tested.
+
+Implemented subset
+==================
+
+The device advertises NCM version 1.0 (``bcdNcmVersion = 0x0100``) with:
+
+* NTB16 headers and datagram pointer tables.
+* A maximum NTB size of 16384 bytes in each direction.
+* Up to 32 received datagrams and 16 transmitted datagrams per NTB.
+* A maximum Ethernet frame size of 1514 bytes, excluding the Ethernet FCS.
+* Four-byte alignment of pointer tables and Ethernet payloads, with a payload
+  remainder of zero.
+* No optional datagram CRC, NTB32, configurable MAC address or configurable MTU.
+* The four-byte ``SET_NTB_INPUT_SIZE`` request, not its optional extended form.
+
+The NCM 1.1 extensions are not implemented. The link is USB 2.0: NCM reduces
+the per-transfer overhead, but does not by itself guarantee any particular
+throughput.
+
+USB descriptors
+===============
+
+The descriptors are in ``app_an02062/src/ncm_descriptors.h`` and are shown in
+:numref:`usb_descriptors`. They consist of:
+
+* A USB 2.0 device descriptor using the IAD device-class triplet
+  ``0xEF/0x02/0x01``.
+* An Interface Association Descriptor grouping the two NCM interfaces.
+* Interface 0: CDC communications class, NCM subclass ``0x0D``.
+* CDC header, union, Ethernet networking and NCM functional descriptors.
+* Interrupt IN endpoint ``0x81`` for network-connection and connection-speed
+  notifications.
+* Interface 1, alternate setting 0: no data endpoints.
+* Interface 1, alternate setting 1: bulk OUT ``0x01`` and bulk IN ``0x82``,
+  with NCM data-interface protocol ``0x01``.
+
+There is one 94-byte configuration descriptor for each speed. They differ only
+in the bulk maximum packet size: 512 bytes at high speed and 64 bytes at full
+speed. The interrupt endpoint has a 16-byte packet size and a 32 ms polling
+interval.
+
+.. _usb_descriptors:
+.. figure:: ../img/usb_descriptors.*
+   :width: 95%
+   :align: center
+
+   USB descriptor hierarchy of the CDC-NCM example
+
+.. important::
+
+   The product ID, ``NCM_PRODUCT_ID``, defaults to the placeholder ``0x0000``
+   under the XMOS vendor ID. A product must use its own VID/PID pair and unique
+   MAC addresses. Do not reuse the PID of AN00131's ECM device: a host may
+   remember which driver it loaded for a VID/PID pair.
+
+Control requests and link state
+===============================
+
+``ncm_control.xc`` passes standard enumeration requests to ``lib_xud``. It
+handles ``SET_INTERFACE`` and ``GET_INTERFACE`` itself, so that it can validate
+the alternate setting. Class requests are accepted only when the device is
+configured and the request addresses the communications interface:
+
+.. list-table:: Supported NCM requests
+   :header-rows: 1
+   :widths: 40 60
+
+   * - Request
+     - Behaviour
+   * - GET_NTB_PARAMETERS
+     - Returns the fixed NTB16 size, alignment and receive-datagram limits.
+   * - GET_NTB_FORMAT / SET_NTB_FORMAT
+     - Reports or selects format 0 (NTB16); NTB32 is rejected.
+   * - GET_NTB_INPUT_SIZE / SET_NTB_INPUT_SIZE
+     - Reports or selects the device-to-host NTB limit, from 2048 to 16384 bytes.
+   * - GET_CRC_MODE / SET_CRC_MODE
+     - Reports or selects mode 0 (no appended datagram CRC).
+   * - SET_ETHERNET_PACKET_FILTER
+     - Accepted, but no filtering is applied or advertised.
+
+Format and CRC-mode changes are accepted only while the data interface is
+inactive. An input-size change is rejected while an NTB is being transmitted,
+unless it leaves the size unchanged. If the NTB under construction is already
+larger than a reduced limit, it is discarded. All other requests, and requests
+with an invalid direction, value, interface or data length, are stalled.
+
+Endpoint 0 passes configuration and input-size changes to the endpoint task
+through ``ncm_control_if``. The endpoint task owns the transport buffers and
+all of their state, so the two tasks share no global variables.
+
+The data interface is active only once configuration 1 and alternate setting 1
+have been selected. The notification endpoint then reports the connection speed
+and the network connection state. The reported speed is the nominal USB
+signalling rate, not a measured throughput.
+
+NTB16 framing
+=============
+
+An NTB begins with a 12-byte NCM Transfer Header (NTH16):
+
+.. list-table:: NTH16 layout
+   :header-rows: 1
+   :widths: 15 25 60
+
+   * - Offset
+     - Size
+     - Field
+   * - 0
+     - 4 bytes
+     - Signature ``NCMH``
+   * - 4
+     - 2 bytes
+     - Header length (12)
+   * - 6
+     - 2 bytes
+     - Sequence number
+   * - 8
+     - 2 bytes
+     - Block length
+   * - 10
+     - 2 bytes
+     - Offset of the first NCM Datagram Pointer table (NDP16)
+
+All multibyte NCM fields are little-endian. An NDP16 contains the signature
+``NCM0``, its own length, the offset of the next table, and a list of
+offset/length pairs, each locating one Ethernet frame. A pair of zeros ends the
+list. :numref:`ntb_structure` shows an NTB carrying two frames.
+
+.. _ntb_structure:
+.. figure:: ../img/ntb_structure.*
+   :width: 100%
+   :align: center
+
+   An NTB16 carrying two Ethernet frames (not to scale)
+
+The framing code, ``ncm_ntb.c``, is portable C. The same source is built into
+the application and into the host tests in ``tests``.
+
+The receiver validates a whole block before it passes any frame to the
+application. It checks the signatures, lengths, table alignment, frame sizes
+and table chain, and that no frame overlaps a table or another frame. An invalid
+block is discarded. The number of tables followed and frames returned is
+limited, so a malformed block cannot cause unbounded work. Received frames are
+copied out of the block, so a host that ignores the advertised payload alignment
+is still accepted.
+
+The parser also accepts two things that hosts do in practice: a block length of
+zero, meaning that the USB transfer delimits the block, and a single trailing
+zero byte, which some hosts append to avoid sending a zero-length packet.
+
+The transmitter reserves an 88-byte area for the header and pointer table,
+appends aligned frames after it, and fills in the table length and block length
+when the NTB is sent. Unused table space and alignment padding are zeroed, so
+that old buffer contents are never transmitted.
+
+The NCM alignment divisor and remainder apply to the payload that follows the
+14-byte Ethernet header, not to the start of the frame. With a divisor of four
+and a remainder of zero, each Ethernet frame therefore starts at an offset of
+two modulo four.
+
+*********************
+Application structure
+*********************
+
+Tasks and buffers
+=================
+
+The ``par`` statement in ``main.xc`` starts four tasks on the USB tile, as shown
+in :numref:`task_diagram`:
+
+* ``XUD_Main`` is the ``lib_xud`` USB device layer.
+* ``Endpoint0`` handles enumeration and the NCM control requests.
+* ``CdcNcmEndpointsHandler``, the endpoint task, moves NTBs over the bulk
+  endpoints and sends notifications.
+* ``EthernetFrameHandler`` runs the IPv4 stack and web server.
+
+.. _task_diagram:
+.. figure:: ../img/task_diagram.*
+   :width: 95%
+   :align: center
+
+   Task diagram of the CDC-NCM example
+
+The endpoint task has one 16 KiB receive NTB, two 16 KiB transmit NTBs and a
+separate buffer that receives each USB OUT packet. Nothing is allocated
+dynamically. An OUT packet is copied into the receive NTB only after its length
+has been checked against the space remaining.
+
+An NTB usually spans several USB packets. Received packets are accumulated until
+the block is complete, which is signalled by the block length in its header, by
+a short USB packet, or by reaching the maximum NTB size. A zero-length packet on
+its own is ignored.
+
+A completed receive NTB stays in its buffer until the application has read all
+of its frames. The OUT endpoint is not re-armed until then, so the host is held
+off by USB flow control rather than by dropping data.
+
+Having two transmit NTBs lets the application queue frames into one while the
+other is being sent. An NTB is sent 250 microseconds after its first frame is
+queued, or sooner if it reaches its frame count or size limit. This is an
+aggregation delay, not a latency guarantee: if the host stops reading the IN
+endpoint, frames wait. When an NTB shorter than the negotiated maximum ends on a
+full USB packet, a zero-length packet is sent to terminate the transfer.
+
+Bus-state notifications are enabled on all endpoints. A bus reset clears the
+transport state, suspend pauses transfers, and resume restarts any that were
+pending.
+
+If the alternate setting changes while a bulk IN packet is armed, that packet is
+left in place rather than overwritten. Changing the alternate setting or
+configuration while traffic is outstanding has not been tested.
+
+Application interface
+=====================
+
+The application exchanges whole Ethernet frames with the endpoint task through
+``usb_cdc_ncm_if``, and never sees an NTB:
+
+.. literalinclude:: ../../app_an02062/src/xud_ncm.h
+   :language: c
+   :start-at: interface usb_cdc_ncm_if
+   :end-at: };
+
+``read_frame`` waits for a received frame and copies it to the caller.
+``send_frame`` waits until there is space, then copies a frame into the NTB
+under construction. It returns once the frame is queued, without waiting for the
+host to receive it.
+
+Both calls need a buffer of at least 1514 bytes. Frame lengths exclude the
+Ethernet FCS and must be between 14 and 1514 bytes; ``send_frame`` ignores a
+frame of any other length. ``is_frame_available`` allows polling, but the
+example uses the blocking ``read_frame`` instead.
+
+Web demo and limitations
+========================
+
+The small IPv4 stack inherited from AN00131 answers ARP requests, acts as a DHCP
+server, replies to ICMP echo requests (ping), responds to mDNS queries and runs
+a basic HTTP server. The device's default address is ``169.254.85.85``, and its
+DHCP server offers ``169.254.170.170`` to the host with a subnet mask of
+``255.255.0.0``. No gateway or DNS server is offered, so the host continues to
+use its existing Internet connection.
+
+The device answers to the name ``xmos-ncm.local`` using mDNS. If the host cannot
+resolve this name, browse to ``http://169.254.85.85/`` instead. The page shows:
+
+* The state of each LED, with a link to switch it.
+* The state of each push button.
+* Counts of the Ethernet packets and bytes received and transmitted.
+
+The page updates when a button is pressed or released. It loads a script,
+``/buttons.js``, which requests the button state from ``/buttons`` every 250
+milliseconds and reloads the page when the state changes. The script waits for
+each request to finish before starting the next, and retries after a failure.
+Responses are marked as not cacheable.
+
+A press shorter than the polling interval can be missed, and a browser may poll
+less often in a background tab. Without JavaScript the page still works, using
+its Refresh link.
+
+This is not a production network stack. It has no IPv6, IP reassembly, IPv4
+header options, TCP retransmission, authentication or TLS, and each HTTP
+response must fit in one Ethernet frame. Connect the device only to a trusted
+host. For a product, replace the demonstration stack with a maintained network
+stack, and assess security and timing separately.
+
+*******************
+Example application
+*******************
+
+Building the example
+====================
+
+Install XTC Tools 15.3.1 and CMake 3.21 or later, and activate the XTC
+environment in the shell used for the build. From the repository root::
+
+    cd app_an02062
+    cmake -G "Unix Makefiles" -B build
+    xmake -j -C build
+
+The first build fetches ``lib_xud(4.0.1)``, ``lib_logging(3.5.0)`` and
+``lib_xassert(5.1.0)`` into the sandbox, along with ``lib_basix``, which they
+depend on. The versions used are recorded in ``build/manifest.txt``.
+
+The executable is ``app_an02062/bin/app_an02062.xe``. The repository root also
+has a CMake entry point. Use one or the other, not both with the same build
+directory.
+
+Running the example
+===================
+
+Connect the board's XTAG debug interface and power the board as described in the
+XK-EVK-XU316 hardware documentation. From ``app_an02062``::
+
+    xrun --xscope bin/app_an02062.xe
+
+On Windows, use ``bin\app_an02062.xe``. The application prints its address and
+URL over xSCOPE. ``xrun`` loads the application into RAM only. To have the board
+boot it without an XTAG, program it into flash instead::
+
+    xflash bin/app_an02062.xe
+
+Connect a USB data cable between the host and the board's application USB
+connector, which is separate from the XTAG connector. The host should create an
+NCM Ethernet adapter. Leave that adapter set to obtain its IPv4 address
+automatically, then check the connection::
+
+    ping 169.254.85.85
+
+Open ``http://xmos-ncm.local/`` or ``http://169.254.85.85/`` in a browser. Use
+the links to switch the LEDs, and press a push button to see the page update.
+If the browser insists on HTTPS, allow plain HTTP for this address.
+
+If the host does not obtain an address by DHCP, temporarily assign it
+``169.254.170.170/16`` with no gateway, and remove the setting afterwards. The
+addresses are fixed, so do not connect more than one board running this example
+to the same host.
+
+Host diagnostics
+================
+
+* Windows 11: check Device Manager for the NCM network adapter and its driver.
+  Use ``ipconfig /all`` to inspect the assigned address.
+* macOS: check Network settings for the new USB Ethernet service, and
+  ``ifconfig`` for its address.
+* Linux: check ``dmesg`` for ``cdc_ncm``, then ``ip link`` and ``ip addr``.
+  Bring up and configure the interface using the host's network manager.
+
+If the host does not load its NCM driver, inspect the descriptors it read and a
+USB trace to find the cause. A corporate USB or network policy can also block
+the device or its traffic.
+
+***************
+Further reading
+***************
+
+* `USB-IF CDC specifications <https://www.usb.org/documents>`_
+  (CDC 1.2, ECM 1.2 and NCM 1.0; the implementation does not advertise NCM 1.1).
+* `Microsoft USB device class drivers <https://learn.microsoft.com/en-us/windows-hardware/drivers/usbcon/supported-usb-classes>`_.
+* `XMOS USB device library <https://github.com/xmos/lib_xud>`_.
+* `AN00131 source <https://github.com/xmosnotes/an00131>`_.
+* `XTC Tools installation guide <https://www.xmos.com/xtc-install-guide>`_.
+* `XCommon CMake documentation <https://www.xmos.com/file/xcommon-cmake-documentation/?version=latest>`_.

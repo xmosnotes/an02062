@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="701" viewBox="0 0 800 701" font-family="Helvetica, Arial, sans-serif">
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1399db"/></marker>
+<marker id="arrow_grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#444444"/></marker>
+</defs>
+<rect width="800" height="701" fill="#ffffff"/>
+<rect x="250.0" y="15" width="300" height="62" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="400.0" y="36" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Device</text>
+<text x="262.0" y="55" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- USB 2.0, class EF/02/01 (uses IAD)</text>
+<text x="262.0" y="71" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Vendor and product IDs, strings</text>
+<rect x="250.0" y="99" width="300" height="46" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="400.0" y="120" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Configuration</text>
+<text x="262.0" y="139" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Two interfaces, bus powered</text>
+<rect x="250.0" y="167" width="300" height="62" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="400.0" y="188" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Interface Association</text>
+<text x="262.0" y="207" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Groups interfaces 0 and 1</text>
+<text x="262.0" y="223" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Function class CDC, subclass NCM</text>
+<line x1="400" y1="77" x2="400" y2="99" stroke="#000" stroke-width="1.1"/>
+<line x1="400" y1="145" x2="400" y2="167" stroke="#000" stroke-width="1.1"/>
+<path d="M400,229 L400,245 M190,245 L600,245 M190,245 L190,261 M600,245 L600,261" fill="none" stroke="#000" stroke-width="1.1"/>
+<rect x="25" y="261" width="330" height="62" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="190.0" y="282" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Interface 0: Communication</text>
+<text x="37" y="301" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- CDC communications class, NCM subclass</text>
+<text x="37" y="317" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- One endpoint</text>
+<rect x="74" y="337" width="290" height="46" rx="10" fill="#cfe7f5" stroke="#808080" stroke-width="0.75"/>
+<text x="219.0" y="358" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Header Functional</text>
+<text x="86" y="377" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- CDC version 1.20</text>
+<line x1="50" y1="360.0" x2="74" y2="360.0" stroke="#000" stroke-width="1.1"/>
+<rect x="74" y="395" width="290" height="46" rx="10" fill="#cfe7f5" stroke="#808080" stroke-width="0.75"/>
+<text x="219.0" y="416" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Union Functional</text>
+<text x="86" y="435" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Control interface 0, data interface 1</text>
+<line x1="50" y1="418.0" x2="74" y2="418.0" stroke="#000" stroke-width="1.1"/>
+<rect x="74" y="453" width="290" height="62" rx="10" fill="#cfe7f5" stroke="#808080" stroke-width="0.75"/>
+<text x="219.0" y="474" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Ethernet Networking Functional</text>
+<text x="86" y="493" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- MAC address string</text>
+<text x="86" y="509" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Maximum segment size 1514 bytes</text>
+<line x1="50" y1="484.0" x2="74" y2="484.0" stroke="#000" stroke-width="1.1"/>
+<rect x="74" y="527" width="290" height="62" rx="10" fill="#cfe7f5" stroke="#808080" stroke-width="0.75"/>
+<text x="219.0" y="548" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">NCM Functional</text>
+<text x="86" y="567" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- NCM version 1.0</text>
+<text x="86" y="583" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- No optional capabilities</text>
+<line x1="50" y1="558.0" x2="74" y2="558.0" stroke="#000" stroke-width="1.1"/>
+<rect x="74" y="601" width="290" height="62" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="219.0" y="622" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Notification Endpoint 0x81</text>
+<text x="86" y="641" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Interrupt IN, 16 bytes</text>
+<text x="86" y="657" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Polled every 32 ms</text>
+<line x1="50" y1="632.0" x2="74" y2="632.0" stroke="#000" stroke-width="1.1"/>
+<line x1="50" y1="323" x2="50" y2="632.0" stroke="#000" stroke-width="1.1"/>
+<rect x="435" y="261" width="330" height="46" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="600.0" y="282" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Interface 1: Data</text>
+<text x="447" y="301" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- CDC data class, NCM data protocol</text>
+<rect x="484" y="321" width="290" height="46" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="629.0" y="342" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Alternate setting 0</text>
+<text x="496" y="361" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- No endpoints: data path disabled</text>
+<rect x="484" y="379" width="290" height="46" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="629.0" y="400" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Alternate setting 1</text>
+<text x="496" y="419" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Data path enabled</text>
+<line x1="460" y1="344.0" x2="484" y2="344.0" stroke="#000" stroke-width="1.1"/>
+<line x1="460" y1="402.0" x2="484" y2="402.0" stroke="#000" stroke-width="1.1"/>
+<line x1="460" y1="307" x2="460" y2="402.0" stroke="#000" stroke-width="1.1"/>
+<rect x="534" y="439" width="250" height="62" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="659.0" y="460" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Bulk OUT Endpoint 0x01</text>
+<text x="546" y="479" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Host-to-device NTBs</text>
+<text x="546" y="495" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- 512 bytes (HS), 64 bytes (FS)</text>
+<line x1="510" y1="470.0" x2="534" y2="470.0" stroke="#000" stroke-width="1.1"/>
+<rect x="534" y="513" width="250" height="62" rx="10" fill="#b8e720" stroke="#808080" stroke-width="0.75"/>
+<text x="659.0" y="534" font-size="15" text-anchor="middle" font-weight="bold" fill="#000000">Bulk IN Endpoint 0x82</text>
+<text x="546" y="553" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- Device-to-host NTBs</text>
+<text x="546" y="569" font-size="12" text-anchor="start" font-weight="normal" fill="#000000">- 512 bytes (HS), 64 bytes (FS)</text>
+<line x1="510" y1="544.0" x2="534" y2="544.0" stroke="#000" stroke-width="1.1"/>
+<line x1="510" y1="425" x2="510" y2="544.0" stroke="#000" stroke-width="1.1"/>
+<rect x="600" y="679" width="18" height="12" rx="2" fill="#cfe7f5" stroke="#808080" stroke-width="0.75"/>
+<text x="624" y="689" font-size="11" text-anchor="start" font-weight="normal" fill="#000000">CDC functional descriptor</text>
+</svg>
