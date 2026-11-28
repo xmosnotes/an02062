@@ -388,6 +388,5 @@ Further reading
   (CDC 1.2, ECM 1.2 and NCM 1.0; the implementation does not advertise NCM 1.1).
 * `Microsoft USB device class drivers <https://learn.microsoft.com/en-us/windows-hardware/drivers/usbcon/supported-usb-classes>`_.
 * `XMOS USB device library <https://github.com/xmos/lib_xud>`_.
-* `AN00131 source <https://github.com/xmosnotes/an00131>`_.
 * `XTC Tools installation guide <https://www.xmos.com/xtc-install-guide>`_.
 * `XCommon CMake documentation <https://www.xmos.com/file/xcommon-cmake-documentation/?version=latest>`_.
