@@ -16,6 +16,9 @@
 *.pyc
 **/*.egg-info/
 **/*venv/*
+.venv-tests/
+**/.pytest_cache/
+**/pytest_result.xml
 
 # XMOS temp files
 **/*build*/*

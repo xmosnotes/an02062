@@ -1,18 +1,17 @@
 # This file relates to internal XMOS infrastructure and should be ignored by external users
 
-an_number: an0xxxx
-an_number_upper: AN0XXXX
+an_number: an02062
+an_number_upper: AN02062
 project: '{{an_number}}'
-title: '{{an_number_upper}}: app_note_title'
+title: '{{an_number_upper}}: USB CDC-NCM Class for Ethernet over USB'
 version: 1.0.0
 
 documentation:
   exclude_patterns_path: doc/exclude-patterns.inc
-  root_doc: doc/rst/an0xxxx.rst
-  linkcheck_ignore_regex: [".*an0000.*"]
+  root_doc: doc/rst/an02062.rst
   cognidox_part_number: XM-000000-AN
   pdfs:
-    doc/rst/an0xxxx.rst:
+    doc/rst/an02062.rst:
       pdf_title: '{{title}}'
       pdf_filename: '{{an_number}}_v{{version}}'
       pdf_short: yes
@@ -23,4 +22,3 @@ documentation:
 
 software:
   cognidox_part_number: XM-000000-SM
-

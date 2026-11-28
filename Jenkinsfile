@@ -1,6 +1,6 @@
 // This file relates to internal XMOS infrastructure and should be ignored by external users
 
-@Library('xmos_jenkins_shared_library@v0.54.0') _
+@Library('xmos_jenkins_shared_library@v0.56.0') _
 
 getApproval()
 pipeline {
@@ -20,7 +20,7 @@ pipeline {
         )
         string(
             name: 'INFR_APPS_VERSION',
-            defaultValue: 'v3.6.0',
+            defaultValue: 'develop',
             description: 'The infr_apps version'
         )
     }
@@ -58,6 +58,17 @@ pipeline {
                     steps {
                         dir(REPO_NAME) {
                             xcoreBuild()
+                        }
+                    }
+                }
+
+                stage('Host framing tests') {
+                    steps {
+                        dir("${REPO_NAME}/tests") {
+                            createVenv(reqFile: "requirements.txt")
+                            withVenv {
+                                runPytest('-v --sanitizers -n=1')
+                            }
                         }
                     }
                 }
